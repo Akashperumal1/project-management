@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Management Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        
+       
+        <h1>Project Management Dashboard</h1>
+
+        <!-- Task Management Section -->
+        <div class="task-management">
+            <h2>Task Management</h2>
+            <form id="task-form">
+                <input type="text" id="task-name" placeholder="Task Name" required>
+                <input type="text" id="assignee" placeholder="Assignee" required>
+                <input type="date" id="due-date" required>
+                <select id="priority">
+                    <option value="high">High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                </select>
+                <input type="text" id="description" placeholder="Description">
+                <input type="text" id="project" placeholder="Project/Category">
+                <input type="text" id="attachment" placeholder="Attachment (File/Link)">
+                <button type="submit">Create Task</button>
+            </form>
+            <ul id="task-list"></ul>
+        </div>
+
+        <!-- Task Progress Charts Section -->
+        <div class="task-progress-charts">
+            <h2>Task Progress Charts</h2>
+            <div class="task-chart-container">
+                <canvas id="task-chart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const taskForm = document.getElementById('task-form');
+            const taskList = document.getElementById('task-list');
+            
+            taskForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+    
+                const taskName = document.getElementById('task-name').value;
+                const assignee = document.getElementById('assignee').value;
+                const dueDate = document.getElementById('due-date').value;
+                const priority = document.getElementById('priority').value;
+                const description = document.getElementById('description').value;
+                const project = document.getElementById('project').value;
+                const attachment = document.getElementById('attachment').value;
+    
+                // Create a new task object
+                const newTask = {
+                    name: taskName,
+                    assignee: assignee,
+                    dueDate: dueDate,
+                    priority: priority,
+                    description: description,
+                    project: project,
+                    attachment: attachment,
+                    status: 'Pending', // Initial status
+                };
+    
+                // Add the task object to the task list
+                addTask(newTask);
+    
+                // Clear the form fields
+                taskForm.reset();
+            });
+    
+            // Function to add a task to the task list
+            function addTask(task) {
+                // Create a new task item
+                const taskItem = document.createElement('li');
+                taskItem.classList.add('task-item');
+                taskItem.innerHTML = `
+                    <div class="task-details">
+                        <span class="task-name">${task.name}</span>
+                        <span class="assignee">${task.assignee}</span>
+                        <span class="due-date">${task.dueDate}</span>
+                        <span class="priority-icon">${getPriorityIcon(task.priority)}</span>
+                        <span class="description">${task.description}</span>
+                        <span class="project">${task.project}</span>
+                        <span class="attachment">${task.attachment}</span>
+                        <span class="status">${task.status}</span>
+                    </div>
+                    <div class="task-chart-container">
+                        <canvas class="task-chart" width="400" height="200"></canvas>
+                    </div>
+                    <div class="task-actions">
+                        <button class="status-button" data-task-status="In Progress">Start</button>
+                        <button class="status-button" data-task-status="Completed">Complete</button>
+                        <button class="delete-button">Delete</button>
+                    </div>
+                    <div class="history"></div>
+                `;
+    
+                // Add event listeners for status change buttons
+                const statusButtons = taskItem.querySelectorAll('.status-button');
+                statusButtons.forEach(button => {
+                    button.addEventListener('click', () => changeTaskStatus(taskItem, button));
+                });
+    
+                // Add event listener for delete button
+                const deleteButton = taskItem.querySelector('.delete-button');
+                deleteButton.addEventListener('click', () => deleteTask(taskItem));
+    
+                // Add the task item to the task list
+                taskList.appendChild(taskItem);
+    
+                // Initialize the task progress chart
+                initializeTaskChart(taskItem.querySelector('.task-chart'));
+            }
+    
+            // Function to change task status
+            function changeTaskStatus(taskItem, statusButton) {
+                const newStatus = statusButton.getAttribute('data-task-status');
+                const statusSpan = taskItem.querySelector('.status');
+                const currentStatus = statusSpan.textContent;
+    
+                if (newStatus !== currentStatus) {
+                    statusSpan.textContent = newStatus;
+    
+                    // Create a history entry for the status change
+                    const historyItem = document.createElement('div');
+                    historyItem.classList.add('history-item');
+                    historyItem.textContent = `${currentStatus} → ${newStatus}`;
+    
+                    // Append the history entry to the task item
+                    const historyContainer = taskItem.querySelector('.history');
+                    historyContainer.appendChild(historyItem);
+                }
+            }
+    
+            // Function to delete a task
+            function deleteTask(taskItem) {
+                taskItem.remove();
+            }
+    
+            // Function to get priority icon based on priority value
+            function getPriorityIcon(priority) {
+                switch (priority) {
+                    case 'high':
+                        return '📌'; // High Priority
+                    case 'medium':
+                        return '🔵'; // Medium Priority
+                    case 'low':
+                        return '🟢'; // Low Priority
+                    default:
+                        return '';
+                }
+            }
+    
+            // Function to initialize the task progress chart
+            function initializeTaskChart(canvas) {
+                new Chart(canvas, {
+                    type: 'doughnut', // Change chart type to doughnut
+                    data: {
+                        labels: ['Completed', 'Remaining'],
+                        datasets: [{
+                            data: [0, 100], // Example data for chart (change as needed)
+                            backgroundColor: ['#36A2EB', '#FFCE56'],
+                        }],
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'right',
+                            },
+                        },
+                    },
+                });
+            }
+    
+            // Initialize the task progress chart for existing tasks
+            const existingTaskCharts = document.querySelectorAll('.task-chart');
+            existingTaskCharts.forEach(initializeTaskChart);
+        });
+    </script>
+
+    <style>
+       
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        h1 {
+            margin-bottom: 20px;
+        }
+        
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        input,
+        select,
+        button {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background-color: #0056b3;
+        }
+        
+        #task-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        
+        .task-item {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin: 5px 0;
+        }
+
+        .task-details {
+            flex: 1;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        .task-name,
+        .assignee,
+        .due-date,
+        .priority-icon,
+        .description,
+        .project,
+        .attachment,
+        .status {
+            flex: 0 1 calc(20% - 10px);
+        }
+
+        .task-chart-container {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .history-item {
+            margin-top: 5px;
+            font-size: 14px;
+        }
+    </style>
+</body>
+</html>
